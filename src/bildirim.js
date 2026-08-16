@@ -11,7 +11,7 @@ export const VAPID_ANAHTARI =
 // Cloudflare Worker adresi. Deploy edilince buraya yapistirilacak,
 // ornegin: 'https://nabiz.rahanozturk2.workers.dev'
 // Bos oldugu surece uygulama ici serit calisir, itme bildirimi gitmez.
-export const WORKER_ADRESI = ''
+export const WORKER_ADRESI = 'https://7ler-demo.rahanozturk.workers.dev/api/nabiz'
 
 // Nabiz kaydi atildiktan sonra bildirimi asil yollayan cagri.
 // Kimlik jetonunu gonderiyoruz; Worker cagiranin gercekten o grubun

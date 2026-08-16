@@ -7,15 +7,30 @@
 //
 // KURULUM (Ra icin adim adim README.md dosyasinda).
 //
+// Bu Worker ayni zamanda sitenin kendisini de sunuyor (Workers Assets).
+// /api/nabiz disindaki her sey statik dosyalara gidiyor.
+//
 // Beklenen istek:
-//   POST /  { grupId, nabizId }   + Authorization: Bearer <Firebase ID token>
+//   POST /api/nabiz  { grupId, nabizId }  + Authorization: Bearer <Firebase ID token>
 // Worker once cagiranin kimligini dogrular, sonra nabzi Firestore'dan okur,
 // hedeflerin cihaz anahtarlarini bulur ve FCM'e bildirimi yollar.
 
 export default {
   async fetch(istek, ortam) {
+    const yol = new URL(istek.url).pathname
+
+    // Bildirim ucu disindaki her sey siteye ait: statik dosyalara devret.
+    if (!yol.startsWith('/api/nabiz')) {
+      if (ortam.ASSETS) return ortam.ASSETS.fetch(istek)
+      return new Response('bulunamadı', { status: 404 })
+    }
+
     if (istek.method === 'OPTIONS') return cors(new Response(null, { status: 204 }))
     if (istek.method !== 'POST') return cors(yanit({ hata: 'yalnız POST' }, 405))
+
+    if (!ortam.SERVIS_HESABI || !ortam.WEB_API_KEY) {
+      return cors(yanit({ hata: 'SERVIS_HESABI / WEB_API_KEY tanımlı değil' }, 500))
+    }
 
     try {
       const anahtar = JSON.parse(ortam.SERVIS_HESABI)
