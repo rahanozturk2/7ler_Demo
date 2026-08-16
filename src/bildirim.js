@@ -5,7 +5,8 @@ import { cihazKaydet } from './veri'
 // Firebase konsol -> Project settings -> Cloud Messaging -> Web configuration
 // -> "Generate key pair" ile uretilen ACIK anahtar buraya gelecek.
 // Bos oldugu surece bildirim izni istenmez, uygulama sessizce calismaya devam eder.
-export const VAPID_ANAHTARI = ''
+export const VAPID_ANAHTARI =
+  'BHt1a8ZgxAF4fWS6MVInYQFQBAoSGWrLqjXMc5d3VId-RgR3aRbsOF3_7dNkMZikhZU_KiRjj6qso3Qa2VwPvXE'
 
 export function bildirimHazirMi() {
   return Boolean(VAPID_ANAHTARI) && 'Notification' in window && 'serviceWorker' in navigator
