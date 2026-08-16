@@ -25,11 +25,10 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build
+      # Pages depo ayarlarindan bir kere aciliyor:
+      # Settings -> Pages -> Build and deployment -> Source: GitHub Actions
+      # (is akisinin jetonu bu ayari kendisi degistiremiyor)
       - uses: actions/configure-pages@v5
-        with:
-          # Depo ayarlarina elle girmeye gerek kalmasin diye
-          # Pages'i is akisinin kendisi aciyor.
-          enablement: true
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist
