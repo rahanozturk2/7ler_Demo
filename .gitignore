@@ -6,3 +6,11 @@ dist
 # Fikir defteri repoya girmiyor: GitHub Pages ucretsiz planda repo PUBLIC olmak
 # zorunda, bu dosya ise urun fikrinin tamami. Ra isterse bu satiri silmesi yeter.
 FIKIR.md
+
+# Servis hesabi anahtari asla repoya girmesin (yanlislikla kopyalanirsa diye)
+*firebase-adminsdk*.json
+*service-account*.json
+.env
+.env.*
+.dev.vars
+.wrangler
