@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { grupAdiYaz, gruptanAyril, nabizGonder, nabizlariDinle, nabizGoruldu } from './veri'
+import { nabizBildirimiYolla } from './bildirim'
 import Sayfa from './Sayfa'
 import Kutucuk from './Kutucuk'
 
@@ -13,6 +14,7 @@ export default function Grup({ user, grup, tablolar, tabloAc, tabloEkle, cik }) 
   const [nabizlar, setNabizlar] = useState([])
   const [not, setNot] = useState('')
   const [gonderiliyor, setGonderiliyor] = useState(false)
+  const [sonuc, setSonuc] = useState(null)
 
   const uyeler = grup.uyeler || []
   const digerleri = uyeler.filter((u) => u !== user.uid)
@@ -40,9 +42,17 @@ export default function Grup({ user, grup, tablolar, tabloAc, tabloEkle, cik }) 
     setGonderiliyor(true)
     setHata(null)
     try {
-      await nabizGonder(grup.id, user, digerleri, not)
+      const nabizId = await nabizGonder(grup.id, user, digerleri, not)
+      // Kayit atildi; bildirim ayri bir adim. Gitmese bile serit calisir.
+      const b = await nabizBildirimiYolla(grup.id, nabizId)
       setNot('')
-      setPanel(null)
+      setSonuc(
+        b.kurulmadi
+          ? 'Gönderildi. (Bildirim altyapısı henüz kurulmadı — karşı taraf uygulamayı açınca görecek.)'
+          : b.gonderilen > 0
+            ? `Gönderildi. ${b.gonderilen} cihaza bildirim düştü.`
+            : 'Gönderildi. Karşı tarafta bildirim açık cihaz yok, uygulamayı açınca görecek.'
+      )
     } catch (e) {
       setHata('Gönderilemedi: ' + (e?.code || e?.message))
     }
@@ -96,7 +106,7 @@ export default function Grup({ user, grup, tablolar, tabloAc, tabloEkle, cik }) 
       ))}
 
       {digerleri.length > 0 && (
-        <button className="dugme birincil nabiz-dugme" onClick={() => setPanel('nabiz')}>
+        <button className="dugme birincil nabiz-dugme" onClick={() => { setSonuc(null); setPanel('nabiz') }}>
           HAL HATIR SOR
         </button>
       )}
@@ -151,8 +161,10 @@ export default function Grup({ user, grup, tablolar, tabloAc, tabloEkle, cik }) 
             maxLength={60}
           />
 
+          {sonuc && <p className="ipucu ortali">{sonuc}</p>}
+
           <button className="dugme birincil" onClick={gonder} disabled={gonderiliyor}>
-            {gonderiliyor ? 'GÖNDERİLİYOR…' : 'GÖNDER'}
+            {gonderiliyor ? 'GÖNDERİLİYOR…' : sonuc ? 'TEKRAR GÖNDER' : 'GÖNDER'}
           </button>
         </Sayfa>
       )}

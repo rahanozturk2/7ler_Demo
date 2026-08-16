@@ -215,7 +215,7 @@ export function varsayilanGrupGrafikleri(kolonlar, uyeler) {
 // Bildirimin kendisi Cloudflare Worker uzerinden FCM ile gider;
 // uygulama acikken zaten bu kayit yeterli.
 export async function nabizGonder(grupId, gonderen, hedefler, not_) {
-  await addDoc(collection(db, 'gruplar', grupId, 'nabizlar'), {
+  const ref = await addDoc(collection(db, 'gruplar', grupId, 'nabizlar'), {
     gonderen: gonderen.uid,
     gonderenAd: gonderen.displayName || '',
     hedefler,
@@ -223,6 +223,7 @@ export async function nabizGonder(grupId, gonderen, hedefler, not_) {
     not: (not_ || '').trim(),
     zaman: serverTimestamp()
   })
+  return ref.id
 }
 
 // Son 24 saatteki nabizlar; eskiler ekrani mesgul etmesin.

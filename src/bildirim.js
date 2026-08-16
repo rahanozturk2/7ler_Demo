@@ -1,5 +1,5 @@
 import { getMessaging, getToken, onMessage, isSupported } from 'firebase/messaging'
-import { app } from './firebase'
+import { app, auth } from './firebase'
 import { cihazKaydet } from './veri'
 
 // Firebase konsol -> Project settings -> Cloud Messaging -> Web configuration
@@ -7,6 +7,36 @@ import { cihazKaydet } from './veri'
 // Bos oldugu surece bildirim izni istenmez, uygulama sessizce calismaya devam eder.
 export const VAPID_ANAHTARI =
   'BHt1a8ZgxAF4fWS6MVInYQFQBAoSGWrLqjXMc5d3VId-RgR3aRbsOF3_7dNkMZikhZU_KiRjj6qso3Qa2VwPvXE'
+
+// Cloudflare Worker adresi. Deploy edilince buraya yapistirilacak,
+// ornegin: 'https://nabiz.rahanozturk2.workers.dev'
+// Bos oldugu surece uygulama ici serit calisir, itme bildirimi gitmez.
+export const WORKER_ADRESI = ''
+
+// Nabiz kaydi atildiktan sonra bildirimi asil yollayan cagri.
+// Kimlik jetonunu gonderiyoruz; Worker cagiranin gercekten o grubun
+// uyesi oldugunu kendisi dogruluyor.
+export async function nabizBildirimiYolla(grupId, nabizId) {
+  if (!WORKER_ADRESI) return { gonderilen: 0, kurulmadi: true }
+
+  const kullanici = auth.currentUser
+  if (!kullanici) return { gonderilen: 0, hata: 'oturum yok' }
+
+  try {
+    const jeton = await kullanici.getIdToken()
+    const y = await fetch(WORKER_ADRESI, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + jeton },
+      body: JSON.stringify({ grupId, nabizId })
+    })
+    const j = await y.json().catch(() => ({}))
+    if (!y.ok) return { gonderilen: 0, hata: j.hata || ('HTTP ' + y.status) }
+    return j
+  } catch (e) {
+    // Bildirim gitmese de nabiz kaydi atildi; uygulama ici serit calisir.
+    return { gonderilen: 0, hata: e.message }
+  }
+}
 
 export function bildirimHazirMi() {
   return Boolean(VAPID_ANAHTARI) && 'Notification' in window && 'serviceWorker' in navigator
