@@ -26,6 +26,24 @@ export default {
     }
 
     if (istek.method === 'OPTIONS') return cors(new Response(null, { status: 204 }))
+
+    // Teshis ucu: GET /api/nabiz/durum -> gizli degerleri SIZDIRMADAN,
+    // sadece tanimli olup olmadiklarini soyler.
+    if (istek.method === 'GET' && yol.endsWith('/durum')) {
+      let hesapGecerli = false
+      try {
+        const a = JSON.parse(ortam.SERVIS_HESABI || '{}')
+        hesapGecerli = Boolean(a.client_email && a.private_key && a.project_id)
+      } catch { hesapGecerli = false }
+      return cors(
+        yanit({
+          servisHesabiTanimli: Boolean(ortam.SERVIS_HESABI),
+          servisHesabiOkunabilir: hesapGecerli,
+          webApiKeyTanimli: Boolean(ortam.WEB_API_KEY)
+        })
+      )
+    }
+
     if (istek.method !== 'POST') return cors(yanit({ hata: 'yalnız POST' }, 405))
 
     if (!ortam.SERVIS_HESABI || !ortam.WEB_API_KEY) {
