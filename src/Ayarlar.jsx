@@ -14,15 +14,23 @@ function paletHalkasi(id) {
 export default function Ayarlar({ secili, secildi, cikisYap, uid }) {
   const [durum, setDurum] = useState(bildirimDurumu())
   const [bildirimHata, setBildirimHata] = useState(null)
+  const [bilgi, setBilgi] = useState(null)
+  const [calisiyor, setCalisiyor] = useState(false)
 
+  // Izin verilmis olsa bile cihaz anahtari kaydi yarim kalmis olabilir;
+  // o yuzden 'granted' durumunda da yeniden kaydetme yolu birakiyoruz.
   async function bildirimAc() {
     setBildirimHata(null)
+    setBilgi(null)
+    setCalisiyor(true)
     try {
-      await bildirimleriAc(uid)
+      const anahtar = await bildirimleriAc(uid)
       setDurum('granted')
+      setBilgi('Cihaz kaydedildi (' + anahtar.slice(0, 8) + '…)')
     } catch (e) {
       setBildirimHata(e.message)
     }
+    setCalisiyor(false)
   }
 
   return (
@@ -51,7 +59,12 @@ export default function Ayarlar({ secili, secildi, cikisYap, uid }) {
 
       <p className="bolum-ad">Bildirim</p>
       {durum === 'granted' ? (
-        <p className="ipucu">Bu cihazda bildirim açık.</p>
+        <>
+          <p className="ipucu">Bu cihazda bildirim açık.</p>
+          <button className="dugme" onClick={bildirimAc} disabled={calisiyor}>
+            {calisiyor ? 'KAYDEDİLİYOR…' : 'Cihazı yeniden kaydet'}
+          </button>
+        </>
       ) : durum === 'kurulmadi' ? (
         <p className="ipucu">
           Push altyapısı henüz bağlanmadı — VAPID anahtarı girilince burası açılacak.
@@ -60,8 +73,11 @@ export default function Ayarlar({ secili, secildi, cikisYap, uid }) {
       ) : durum === 'desteklenmiyor' ? (
         <p className="ipucu">Bu tarayıcı bildirimi desteklemiyor.</p>
       ) : (
-        <button className="dugme" onClick={bildirimAc}>Bildirimleri aç</button>
+        <button className="dugme" onClick={bildirimAc} disabled={calisiyor}>
+          {calisiyor ? 'AÇILIYOR…' : 'Bildirimleri aç'}
+        </button>
       )}
+      {bilgi && <p className="ipucu">{bilgi}</p>}
       {bildirimHata && <p className="hata">{bildirimHata}</p>}
 
       <button className="dugme sil" onClick={cikisYap}>Çıkış yap</button>
