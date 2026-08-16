@@ -2,7 +2,7 @@ import { db } from './firebase'
 import {
   doc, setDoc, updateDoc, deleteDoc,
   collection, addDoc, getDocs, onSnapshot,
-  query, where, orderBy, startAt, endAt, limit, arrayRemove, serverTimestamp
+  query, where, orderBy, startAt, endAt, limit, arrayRemove, arrayUnion, serverTimestamp
 } from 'firebase/firestore'
 
 // ---- Olcekler: tablo bazinda secilir ----
@@ -219,6 +219,7 @@ export async function nabizGonder(grupId, gonderen, hedefler, not_) {
     gonderen: gonderen.uid,
     gonderenAd: gonderen.displayName || '',
     hedefler,
+    gorenler: [],
     not: (not_ || '').trim(),
     zaman: serverTimestamp()
   })
@@ -238,6 +239,14 @@ export function nabizlariDinle(grupId, geriBildir, hataVer) {
       ),
     hataVer
   )
+}
+
+// Nabzi SILMIYORUZ: dort kisilik bir grupta biri kapatinca digerlerinin
+// seridi de kaybolurdu. Bunun yerine goren kisi kendi adini isaretliyor.
+export async function nabizGoruldu(grupId, nabizId, uid) {
+  await updateDoc(doc(db, 'gruplar', grupId, 'nabizlar', nabizId), {
+    gorenler: arrayUnion(uid)
+  })
 }
 
 export async function nabizSil(grupId, nabizId) {

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { grupAdiYaz, gruptanAyril, nabizGonder, nabizlariDinle, nabizSil } from './veri'
+import { grupAdiYaz, gruptanAyril, nabizGonder, nabizlariDinle, nabizGoruldu } from './veri'
 import Sayfa from './Sayfa'
 import Kutucuk from './Kutucuk'
 
@@ -29,6 +29,7 @@ export default function Grup({ user, grup, tablolar, tabloAc, tabloEkle, cik }) 
     (n) =>
       n.gonderen !== user.uid &&
       (!n.hedefler || n.hedefler.includes(user.uid)) &&
+      !(n.gorenler || []).includes(user.uid) &&
       (!n.zamanMs || simdi - n.zamanMs < TAZE)
   )
 
@@ -54,7 +55,7 @@ export default function Grup({ user, grup, tablolar, tabloAc, tabloEkle, cik }) 
       setHata('Bu grupta henüz ortak tablo yok. Önce bir tablo kur.')
       return
     }
-    nabizSil(grup.id, n.id).catch(() => {})
+    nabizGoruldu(grup.id, n.id, user.uid).catch(() => {})
     tabloAc(tablolar[0].id, true)
   }
 

@@ -85,8 +85,11 @@ service cloud.firestore {
         allow read: if grupUyesiMi();
         allow create: if grupUyesiMi()
                       && request.resource.data.gonderen == request.auth.uid;
-        allow update, delete: if grupUyesiMi()
-                              && resource.data.gonderen == request.auth.uid;
+        // Goren kisi kendini 'gorenler' listesine ekleyebilsin diye
+        // guncelleme hakki uyelerde; silme yalniz gonderende.
+        allow update: if grupUyesiMi();
+        allow delete: if grupUyesiMi()
+                      && resource.data.gonderen == request.auth.uid;
       }
     }
   }
