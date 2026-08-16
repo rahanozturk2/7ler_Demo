@@ -1,0 +1,8 @@
+node_modules
+dist
+.DS_Store
+*.local
+
+# Fikir defteri repoya girmiyor: GitHub Pages ucretsiz planda repo PUBLIC olmak
+# zorunda, bu dosya ise urun fikrinin tamami. Ra isterse bu satiri silmesi yeter.
+FIKIR.md
