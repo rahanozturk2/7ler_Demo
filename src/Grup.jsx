@@ -1,24 +1,61 @@
-import { useState } from 'react'
-import { grupAdiYaz, gruptanAyril } from './veri'
+import { useEffect, useState } from 'react'
+import { grupAdiYaz, gruptanAyril, nabizGonder, nabizlariDinle, nabizSil } from './veri'
 import Sayfa from './Sayfa'
 import Kutucuk from './Kutucuk'
+
+// Son 12 saatteki nabizlar "taze" sayilir; sonrasi ekrandan dusuyor.
+const TAZE = 12 * 60 * 60 * 1000
 
 export default function Grup({ user, grup, tablolar, tabloAc, tabloEkle, cik }) {
   const [panel, setPanel] = useState(null)
   const [ad, setAd] = useState(grup.ad)
   const [hata, setHata] = useState(null)
+  const [nabizlar, setNabizlar] = useState([])
+  const [not, setNot] = useState('')
+  const [gonderiliyor, setGonderiliyor] = useState(false)
 
   const uyeler = grup.uyeler || []
+  const digerleri = uyeler.filter((u) => u !== user.uid)
 
-  async function adiKaydet(e) {
-    e.preventDefault()
-    if (!ad.trim() || ad.trim() === grup.ad) return
+  useEffect(() => {
+    return nabizlariDinle(grup.id, setNabizlar, (e) =>
+      setHata('Nabızlar okunamadı: ' + e.code)
+    )
+  }, [grup.id])
+
+  const simdi = Date.now()
+  // Bana gelenler: baskasinin gonderdigi, hedefinde ben olan, taze olanlar.
+  const bana = nabizlar.filter(
+    (n) =>
+      n.gonderen !== user.uid &&
+      (!n.hedefler || n.hedefler.includes(user.uid)) &&
+      (!n.zamanMs || simdi - n.zamanMs < TAZE)
+  )
+
+  const kisaAd = (uid) => (grup.uyeBilgi?.[uid]?.ad || 'üye').trim().split(' ')[0]
+
+  async function gonder() {
+    if (gonderiliyor || digerleri.length === 0) return
+    setGonderiliyor(true)
+    setHata(null)
     try {
-      await grupAdiYaz(grup.id, ad)
+      await nabizGonder(grup.id, user, digerleri, not)
+      setNot('')
       setPanel(null)
-    } catch (err) {
-      setHata('Ad değiştirilemedi: ' + (err?.code || err?.message))
+    } catch (e) {
+      setHata('Gönderilemedi: ' + (e?.code || e?.message))
     }
+    setGonderiliyor(false)
+  }
+
+  // Nabiza dokununca dogrudan ortak tablonun kayit ekranini ac.
+  function nabizaGit(n) {
+    if (tablolar.length === 0) {
+      setHata('Bu grupta henüz ortak tablo yok. Önce bir tablo kur.')
+      return
+    }
+    nabizSil(grup.id, n.id).catch(() => {})
+    tabloAc(tablolar[0].id, true)
   }
 
   async function ayril() {
@@ -46,6 +83,23 @@ export default function Grup({ user, grup, tablolar, tabloAc, tabloEkle, cik }) 
         {grup.kuran === user.uid && <span className="rozet sonuk">kuran sensin</span>}
       </div>
 
+      {bana.map((n) => (
+        <button className="nabiz-serit" key={n.id} onClick={() => nabizaGit(n)}>
+          <span className="nabiz-dalga">◟◞</span>
+          <span className="nabiz-yazi">
+            <b>{n.gonderenAd?.split(' ')[0] || kisaAd(n.gonderen)}</b> hal hatır sordu
+            {n.not && <span className="nabiz-not">“{n.not}”</span>}
+          </span>
+          <span className="nabiz-git">doldur ›</span>
+        </button>
+      ))}
+
+      {digerleri.length > 0 && (
+        <button className="dugme birincil nabiz-dugme" onClick={() => setPanel('nabiz')}>
+          HAL HATIR SOR
+        </button>
+      )}
+
       <p className="bolum-ad">Ortak tablolar</p>
       <div className="kutucuklar ic">
         {tablolar.map((t) => (
@@ -53,7 +107,7 @@ export default function Grup({ user, grup, tablolar, tabloAc, tabloEkle, cik }) 
             key={t.id}
             ikon="◈"
             ad={t.ad.toLocaleUpperCase('tr')}
-            onClick={() => tabloAc(t.id)}
+            onClick={() => tabloAc(t.id, false)}
           />
         ))}
         <Kutucuk ikon="+" ad="TABLO" tur="bos" onClick={tabloEkle} />
@@ -80,15 +134,44 @@ export default function Grup({ user, grup, tablolar, tabloAc, tabloEkle, cik }) 
 
       {hata && <p className="hata">{hata}</p>}
 
-      <p className="bolum-ad">Titreşim</p>
-      <p className="yakinda">
-        Sıradaki turda: üyelere sessiz bir &quot;naber?&quot; gönderme ve bildirim.
-      </p>
+      {panel === 'nabiz' && (
+        <Sayfa baslik="HAL HATIR SOR" kapat={() => setPanel(null)}>
+          <p className="yakinda">
+            {digerleri.map(kisaAd).join(', ')} kişisine sessiz bir “naber?” gidecek.
+            Uygulamayı açtığında karşısına “doldur” şeridi çıkar.
+          </p>
+
+          <p className="bolum-ad">Not (isteğe bağlı)</p>
+          <input
+            className="alan"
+            value={not}
+            onChange={(e) => setNot(e.target.value)}
+            placeholder="bugün nasıl geçti?"
+            maxLength={60}
+          />
+
+          <button className="dugme birincil" onClick={gonder} disabled={gonderiliyor}>
+            {gonderiliyor ? 'GÖNDERİLİYOR…' : 'GÖNDER'}
+          </button>
+        </Sayfa>
+      )}
 
       {panel === 'ayarlar' && (
         <Sayfa baslik="GRUP AYARLARI" kapat={() => setPanel(null)}>
           <p className="bolum-ad">Grup adı</p>
-          <form className="satir-form" onSubmit={adiKaydet}>
+          <form
+            className="satir-form"
+            onSubmit={async (e) => {
+              e.preventDefault()
+              if (!ad.trim() || ad.trim() === grup.ad) return
+              try {
+                await grupAdiYaz(grup.id, ad)
+                setPanel(null)
+              } catch (err) {
+                setHata('Ad değiştirilemedi: ' + (err?.code || err?.message))
+              }
+            }}
+          >
             <input
               className="alan"
               value={ad}

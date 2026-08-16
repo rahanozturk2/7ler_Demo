@@ -37,6 +37,8 @@ export default function App() {
   const [seciliId, setSeciliId] = useState(null)
   const [seciliGrupId, setSeciliGrupId] = useState(null)
   const [seciliGrupTabloId, setSeciliGrupTabloId] = useState(null)
+  // Nabiza dokunulunca ortak tablo acilip dogrudan kayit ekrani gelsin.
+  const [hemenKayit, setHemenKayit] = useState(false)
 
   const seciliTablo = tablolar.find((t) => t.id === seciliId) || null
   const seciliGrup = gruplar.find((g) => g.id === seciliGrupId) || null
@@ -205,7 +207,11 @@ export default function App() {
             user={user}
             grup={seciliGrup}
             tablolar={grupTablolar}
-            tabloAc={(id) => { setSeciliGrupTabloId(id); setEkran('gruptablo') }}
+            tabloAc={(id, kayitAc) => {
+              setSeciliGrupTabloId(id)
+              setHemenKayit(Boolean(kayitAc))
+              setEkran('gruptablo')
+            }}
             tabloEkle={() => setPanel('grup-tablo-yeni')}
             cik={() => setEkran('ana')}
           />
@@ -219,6 +225,8 @@ export default function App() {
             tema={temaBul(tema)}
             uyeler={seciliGrup.uyeler}
             uyeBilgi={seciliGrup.uyeBilgi}
+            hemenKayit={hemenKayit}
+            kayitAcildi={() => setHemenKayit(false)}
             kolonlariYaz={(k) =>
               kolonlariYazVeri(grupSahip(seciliGrup.id), seciliGrupTablo.id, k)
             }
@@ -231,7 +239,7 @@ export default function App() {
 
       {panel && (
         <Sayfa baslik={PANEL_BASLIK[panel]} kapat={() => setPanel(null)}>
-          {panel === 'ayarlar' && <Ayarlar secili={tema} secildi={temaSec} cikisYap={cikisYap} />}
+          {panel === 'ayarlar' && <Ayarlar secili={tema} secildi={temaSec} cikisYap={cikisYap} uid={user.uid} />}
 
           {panel === 'tablo-yeni' && (
             <TabloYeni

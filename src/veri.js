@@ -209,3 +209,55 @@ export function varsayilanGrupGrafikleri(kolonlar, uyeler) {
     ymin: null, ymax: null, xbas: null, xson: null
   }))
 }
+
+// ---- Hal hatir sorma (nabiz) ----
+// Gonderen bir kayit atar, digerleri onu canli dinler.
+// Bildirimin kendisi Cloudflare Worker uzerinden FCM ile gider;
+// uygulama acikken zaten bu kayit yeterli.
+export async function nabizGonder(grupId, gonderen, hedefler, not_) {
+  await addDoc(collection(db, 'gruplar', grupId, 'nabizlar'), {
+    gonderen: gonderen.uid,
+    gonderenAd: gonderen.displayName || '',
+    hedefler,
+    not: (not_ || '').trim(),
+    zaman: serverTimestamp()
+  })
+}
+
+// Son 24 saatteki nabizlar; eskiler ekrani mesgul etmesin.
+export function nabizlariDinle(grupId, geriBildir, hataVer) {
+  const s = query(collection(db, 'gruplar', grupId, 'nabizlar'), orderBy('zaman', 'desc'), limit(20))
+  return onSnapshot(
+    s,
+    (snap) =>
+      geriBildir(
+        snap.docs.map((d) => {
+          const v = d.data()
+          return { id: d.id, ...v, zamanMs: v.zaman?.toDate ? v.zaman.toDate().getTime() : null }
+        })
+      ),
+    hataVer
+  )
+}
+
+export async function nabizSil(grupId, nabizId) {
+  await deleteDoc(doc(db, 'gruplar', grupId, 'nabizlar', nabizId))
+}
+
+// Bildirim anahtarini kullanicinin altina yaziyoruz. Yalniz sahibi gorebilir;
+// baskasina bildirim yollayacak olan sunucu tarafi servis hesabiyla okur.
+export async function cihazKaydet(uid, anahtar, ad) {
+  await setDoc(doc(db, 'kullanicilar', uid, 'cihazlar', anahtar.slice(0, 40)), {
+    anahtar,
+    ad: ad || '',
+    guncelleme: serverTimestamp()
+  })
+}
+
+// Bugun kim ne girmis? Grup ekranindaki "bugunku durum" seridi bunu kullanir.
+export function bugunMu(zamanMs) {
+  if (!zamanMs) return false
+  const b = new Date()
+  b.setHours(0, 0, 0, 0)
+  return zamanMs >= b.getTime()
+}

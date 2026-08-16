@@ -821,3 +821,33 @@ body[data-koyu='evet'] .ufak-dugme.tehlike { color: #ff9c9c; }
   color: var(--metin-soluk);
   min-width: 42px;
 }
+
+/* ================= Hal hatir sorma (nabiz) ================= */
+
+.nabiz-dugme { margin-top: 14px; }
+
+.nabiz-serit {
+  display: flex; align-items: center; gap: 12px;
+  width: 100%;
+  margin-top: 14px;
+  padding: 14px 18px;
+  border: 1px solid var(--vurgu);
+  border-radius: 26px;
+  background: var(--kutu);
+  color: var(--metin);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  animation: nabizAt 2.4s ease-in-out infinite;
+}
+.nabiz-serit:active { background: var(--kutu-basili); animation: none; }
+
+@keyframes nabizAt {
+  0%, 100% { box-shadow: 0 0 0 0 transparent; }
+  50%      { box-shadow: 0 0 0 4px color-mix(in srgb, var(--vurgu) 22%, transparent); }
+}
+
+.nabiz-dalga { color: var(--vurgu); font-size: 19px; line-height: 1; }
+.nabiz-yazi { flex: 1; font-size: 14px; line-height: 1.5; }
+.nabiz-not { display: block; color: var(--metin-soluk); font-size: 12.5px; }
+.nabiz-git { color: var(--vurgu); font-size: 12px; white-space: nowrap; }

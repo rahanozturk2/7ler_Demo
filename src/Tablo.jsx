@@ -13,7 +13,8 @@ import Grafik from './Grafik'
 // Hem kisisel hem grup tablosunu ayni bilesen ciziyor.
 // Fark tek yerde: uyeler verilirse tablo ortak olur.
 export default function Tablo({
-  user, sahip, tablo, tema, uyeler, uyeBilgi, kolonlariYaz, sil
+  user, sahip, tablo, tema, uyeler, uyeBilgi, kolonlariYaz, sil,
+  hemenKayit, kayitAcildi
 }) {
   const [satirlar, setSatirlar] = useState([])
   const [hata, setHata] = useState(null)
@@ -34,6 +35,15 @@ export default function Tablo({
       setHata('Satırlar okunamadı: ' + e.code)
     )
   }, [sahip.tur, sahip.id, tablo.id])
+
+  // Nabizdan gelindiyse kayit ekranini kendiliginden ac.
+  useEffect(() => {
+    if (hemenKayit && kolonlar.length > 0) {
+      setDuzenlenen(null)
+      setPanel('kayit')
+      kayitAcildi?.()
+    }
+  }, [hemenKayit, kolonlar.length])
 
   // Satirlar yeniden eskiye geliyor; grafik icin eskiden yeniye lazim.
   const artan = useMemo(() => [...satirlar].reverse(), [satirlar])

@@ -1,0 +1,93 @@
+rules_version = '2';
+
+// 7'ler - Firestore guvenlik kurallari
+// Konsola yapistirilacak yer: Firestore Database -> Rules -> Publish
+//
+// Ozet:
+//   - Kendi verine yalniz sen erisirsin.
+//   - Grup verisine yalniz o grubun uyeleri erisir.
+//   - Ortak tabloda kimse baskasinin satirini degistiremez/silemez.
+//   - Cihaz anahtarlari (bildirim) kimseye acik degil; onlari yalniz
+//     sunucu tarafi (Cloudflare Worker, servis hesabiyla) okur.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function girisli() {
+      return request.auth != null;
+    }
+
+    function benim(uid) {
+      return girisli() && request.auth.uid == uid;
+    }
+
+    // ---- Kullanici kartlari ----
+    // Grup kurarken kisi aramak gerektigi icin girmis olan herkes okuyabilir.
+    // Okunan alanlar zaten ad, e-posta ve fotograf; parola benzeri bir sey yok.
+    match /kullanicilar/{uid} {
+      allow read: if girisli();
+      allow create, update, delete: if benim(uid);
+
+      // Kisisel tablolar - sadece sahibi
+      match /tablolar/{tabloId} {
+        allow read, write: if benim(uid);
+
+        match /satirlar/{satirId} {
+          allow read, write: if benim(uid);
+        }
+      }
+
+      // Bildirim cihaz anahtarlari - istemciden sadece sahibi yazar,
+      // baska hicbir kullanici okuyamaz.
+      match /cihazlar/{cihazId} {
+        allow read, write: if benim(uid);
+      }
+    }
+
+    // ---- Gruplar ----
+    match /gruplar/{grupId} {
+
+      // Alt koleksiyonlar icin ust belgeye bakmak gerekiyor.
+      function grupUyesiMi() {
+        return girisli() &&
+          request.auth.uid in get(/databases/$(database)/documents/gruplar/$(grupId)).data.uyeler;
+      }
+
+      // Grubun kendisinde ekstra okuma yapmaya gerek yok, resource elimizde.
+      // 'uyeler array-contains uid' sorgusu bu kuralla guvenli sayilir.
+      allow read: if girisli() && request.auth.uid in resource.data.uyeler;
+
+      // Grup kuran kisi kendini uyeler icine koymak zorunda; boylece
+      // kimse baskalari adina grup uyduramaz.
+      allow create: if girisli()
+                    && request.auth.uid in request.resource.data.uyeler
+                    && request.resource.data.uyeler.size() >= 2
+                    && request.resource.data.kuran == request.auth.uid;
+
+      allow update, delete: if girisli() && request.auth.uid in resource.data.uyeler;
+
+      // Ortak tablolar - grubun tamami kurar ve duzenler
+      match /tablolar/{tabloId} {
+        allow read, write: if grupUyesiMi();
+
+        // Satirlar: herkes okur, herkes KENDI satirini yazar.
+        match /satirlar/{satirId} {
+          allow read: if grupUyesiMi();
+          allow create: if grupUyesiMi()
+                        && request.resource.data.uid == request.auth.uid;
+          allow update, delete: if grupUyesiMi()
+                                && resource.data.uid == request.auth.uid;
+        }
+      }
+
+      // Hal hatir sormalar
+      match /nabizlar/{nabizId} {
+        allow read: if grupUyesiMi();
+        allow create: if grupUyesiMi()
+                      && request.resource.data.gonderen == request.auth.uid;
+        allow update, delete: if grupUyesiMi()
+                              && resource.data.gonderen == request.auth.uid;
+      }
+    }
+  }
+}
